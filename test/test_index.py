@@ -32,7 +32,7 @@ class Test(unittest.TestCase):
     def testProcess(self):
         with open(self.TEST_FILE, 'r', encoding='utf-8-sig', newline='') as file:
 
-            for filing in Index.process(file, self.TEST_DIR, ['990']):
+            for filing in Index.process(file, self.TEST_DIR, ['990', 'BondIssue']):
                 d = next(filing['990'])
                 self.assertEqual(d['ein'], '042103545')
                 self.assertEqual(d['name'], 'TRUSTEES OF BOSTON COLLEGE')
@@ -40,6 +40,17 @@ class Test(unittest.TestCase):
                 self.assertEqual(d['taxyear'], '2015')
                 self.assertEqual(d['contributions'], '210570096')
                 self.assertIsNone(d['priorperiodadjustments'])
+
+                ii = 0
+                bonds = filing['BondIssue']
+                for b in bonds:
+                    ii+=1
+                    self.assertIsNotNone(b)
+                    self.assertEqual(b['ein'], '042103545')
+                    self.assertEqual(b['name'], 'TRUSTEES OF BOSTON COLLEGE')
+                    self.assertIn(b['cusip'], ['57583RPC3', '57583RL45', '57583R4M4', '57583UZQ4'])
+                self.assertEqual(ii, 4)
+
 
     def testExpandFilingsDir(self):    
         dirs = Index._expandFilingsDir(self.TEST_DIR)
