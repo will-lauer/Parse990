@@ -10,7 +10,8 @@ from irs990v2.index import Index
 
 class Test(unittest.TestCase):
 
-    TEST_FILE = pathlib.Path(__file__).parent.joinpath("index.csv")
+    TEST_DIR = pathlib.Path(__file__).parent
+    TEST_FILE =TEST_DIR.joinpath("index.csv")
 
     def testIndex(self):
         with open(self.TEST_FILE, 'r', newline='') as f:
@@ -27,6 +28,27 @@ class Test(unittest.TestCase):
                 ii += 1
             
             self.assertEquals(ii, 3)
+            
+    def testProcess(self):
+        with open(self.TEST_FILE, 'r', encoding='utf-8-sig', newline='') as file:
+
+            for filing in Index.process(file, self.TEST_DIR, ['990']):
+                d = next(filing['990'])
+                self.assertEqual(d['ein'], '042103545')
+                self.assertEqual(d['name'], 'TRUSTEES OF BOSTON COLLEGE')
+                self.assertEqual(d['returntype'], '990')
+                self.assertEqual(d['taxyear'], '2015')
+                self.assertEqual(d['contributions'], '210570096')
+                self.assertIsNone(d['priorperiodadjustments'])
+
+    def testExpandFilingsDir(self):    
+        dirs = Index._expandFilingsDir(self.TEST_DIR)
+    
+        self.assertEqual(len(dirs), 1)
+        self.assertIn('2017', dirs)
+        self.assertIn(self.TEST_DIR.joinpath('2017').joinpath('filings'), dirs['2017'])
+        self.assertIn(self.TEST_DIR.joinpath('2017').joinpath('filings2'), dirs['2017'])
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testIndex']

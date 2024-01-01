@@ -6,8 +6,6 @@ Created on Dec 22, 2023
 import configparser
 from functools import cache
 import importlib.resources
-import re
-import os
 
 class Mapping():
     '''
@@ -54,10 +52,13 @@ class Mapping():
         """Tax Period End Date xpath mapping"""
         return self.mappings.get('Common', 'TaxPeriodEndDate')
     
-    @property
-    def fields(self) -> list[tuple[str, str]]:
+    def fields(self, form: str = '990') -> list[tuple[str, str]]:
         """Return list of the remaining interesting fields."""
-        return self.mappings.items('990')
+        return self.mappings.items(form)
+    
+    def base_path(self, form: str):
+        """Return the base path mapping for the specified form."""
+        return self.mappings.get('Common', form)
         
     @classmethod
     @cache
@@ -70,13 +71,13 @@ class Mapping():
             return config_parser
     
     @classmethod
-    def all_mappings(cls) -> set[str]:
+    def all_mappings(cls, form: str) -> set[str]:
         mappings = set()
-        
-        with importlib.resources.files('irs990v2') as files:
-            for f in files.iterdir():
-                if re.match('.+\.ini', f.name):
-                    config = cls.load_mappings(os.path.splitext(f.name)[0])
-                    for name, _ in config.items('990'):
-                        mappings.add(name)
+
+        with importlib.resources.open_text('irs990v2', 'template.ini') as mapping_file:
+            config = configparser.ConfigParser()
+            config.read_file(mapping_file)
+            for name, _ in config.items(form):
+                mappings.add(name)
+
         return mappings

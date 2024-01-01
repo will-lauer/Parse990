@@ -4,12 +4,10 @@ Created on Dec 22, 2023
 @author: wlauer
 '''
 import typing
-import re
-import os
 import xml.etree.ElementTree as ET
-from pathlib import Path
+from typing import Generator
 
-from .index import Index
+# from .index import Index
 from .mapping import Mapping
 
 class Parser(object):
@@ -25,54 +23,46 @@ class Parser(object):
         '''
         pass
     
-    def processIndex(self, index: typing.TextIO, filings_dir: str) -> typing.Generator[dict[str,str], None, None]:
-        idx = Index(index)
-        
-        dirs = self._expandFilingsDir(filings_dir)
-        
-        for filing in idx:
-            if filing['RETURN_TYPE'] == '990':
-                objectid = filing['OBJECT_ID']
-                year = objectid[:4]
-
-                if year not in dirs:
-                    continue
-                for d in dirs[year]:
-                    file = d.joinpath(f'{objectid}_public.xml')
-                    if file.is_file():
-                        with open(file, 'r', newline='', encoding='utf-8-sig') as f:
-                            yield self.parse990(f)
-                            break
-        
-    
-    def parse990(self, filing: typing.TextIO) -> dict[str, str]:
-        row = dict()
+    def parse(self, filing: typing.TextIO, forms: list[str]) -> dict[str, Generator[dict[str, str], None, None]]:
+        """ Parse 990 filing and return generator that produces a dictionary keyed by form with a value of a generator """
+        base_row = dict()
         
         try:
             root = ET.parse(filing)
             schema_version = root.getroot().get('returnVersion')
             
             mapping = Mapping(schema_version)
+            base_row['ein'] = self._find(root, mapping.ein)
+            base_row['name'] = self._find(root, mapping.name)
+            base_row['returntype'] = self._find(root, mapping.return_type)
+            base_row['taxyear'] = self._find(root, mapping.tax_year)
+            base_row['taxperiodstart'] = self._find(root, mapping.tax_period_start_date)
+            base_row['taxperiodend'] = self._find(root, mapping.tax_period_end_date)
             
-            row['ein'] = self._find(root, mapping.ein)
-            row['name'] = self._find(root, mapping.name)
-            row['returntype'] = self._find(root, mapping.return_type)
-            row['taxyear'] = self._find(root, mapping.tax_year)
-            row['taxperiodstart'] = self._find(root, mapping.tax_period_start_date)
-            row['taxperiodend'] = self._find(root, mapping.tax_period_end_date)
-                        
-            # for name, xpath in mapping.fields:
-            #     row[name] = self._find(root, xpath)
-            for elem in root.iterfind('./ReturnData/IRS990', self.DEFAULT_NAMESPACE):
-                print(elem)
-                for name, field in mapping.fields:
-                    f = elem.find(os.path.basename(field), self.DEFAULT_NAMESPACE)
-                    print(f'{name}: {f}')
+            row = dict()
+            
+            for form in forms:
+                base_path = mapping.base_path(form)
+                fields = mapping.fields(form)
+                row[form] = self._details(root, base_path, fields, base_row)
             
             return row
+
         except Exception as e:
             print(f'Error processing {filing.name}:')
             print(repr(e))
+        
+        
+    def _details(self, root: ET, base_path: str, fields: list[tuple[str, str]], base_row: dict[str, str]) -> Generator[dict[str, str], None, None]:
+        """Return dictionary of generators with details from form"""
+        for f in root.iterfind(base_path, self.DEFAULT_NAMESPACE):
+            form_row = dict()
+            form_row |= base_row
+            
+            for name, field in fields:
+                form_row[name] = self._find(f, field)
+            yield form_row
+
     
     def _find(self, tree: ET, field: str, namespaces: dict[str, str] = DEFAULT_NAMESPACE):
         if field != '':
@@ -81,12 +71,3 @@ class Parser(object):
                 return elem[0].text
         return None
     
-    def _expandFilingsDir(self, filings_dir:str) -> dict[str, list[Path]]:
-        dirs = dict()
-        for year_dir in os.scandir(filings_dir):
-            if year_dir.is_dir() and re.match('[0-9]{4}', year_dir.name):
-                for subdir in os.scandir(year_dir.path):
-                    if subdir.is_dir():
-                        dirs.setdefault(year_dir.name, list()).append(Path(subdir.path))
-        
-        return dirs

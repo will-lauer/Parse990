@@ -28,11 +28,11 @@ class Test(unittest.TestCase):
         self.assertEquals(m.name, 'ReturnHeader/Filer/BusinessName/BusinessNameLine1')
         self.assertEquals(m.tax_year, 'ReturnHeader/TaxYr')
         
-        f = m.fields
+        f = m.fields('990')
         
         (name, val) = f[0]
         self.assertEquals(name, 'contributions')
-        self.assertEquals(val, 'ReturnData/IRS990/CYContributionsGrantsAmt')
+        self.assertEquals(val, 'CYContributionsGrantsAmt')
         
         self.assertEquals(len(f), 51)
     
@@ -43,16 +43,16 @@ class Test(unittest.TestCase):
         self.assertEquals(m.name, 'ReturnHeader/Filer/BusinessName/BusinessNameLine1Txt')
         self.assertEquals(m.tax_year, 'ReturnHeader/TaxYr')
         
-        f = m.fields
+        f = m.fields('990')
         
         (name, val) = f[0]
         self.assertEquals(name, 'contributions')
-        self.assertEquals(val, 'ReturnData/IRS990/CYContributionsGrantsAmt')
+        self.assertEquals(val, 'CYContributionsGrantsAmt')
         
         self.assertEquals(len(f), 51)
     
     def testAllMappings(self):
-        s = Mapping.all_mappings()
+        s = Mapping.all_mappings('990')
         
         self.assertEqual(len(s), 51)
 
