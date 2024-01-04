@@ -23,8 +23,8 @@ def main(args: list[str] = None):
     with open(args.index, 'r', newline='') as index:
         output_files = {f: open(os.path.join(args.out, f + '.csv'), 'w', newline='') for f in args.forms}
         
-        base_fieldnames = {'ein', 'name', 'returntype', 'taxyear', 'taxperiodstart', 'taxperiodend'}
-        fieldnames = {f: base_fieldnames | Mapping.all_mappings(f) for f in args.forms}
+        base_fieldnames = ['ein', 'name', 'returntype', 'taxyear', 'taxperiodstart', 'taxperiodend']
+        fieldnames = {f: base_fieldnames + list(Mapping.all_mappings(f)) for f in args.forms}
         
         writer = {f: csv.DictWriter(output_files[f], fieldnames=fieldnames[f]) for f in args.forms}
         
