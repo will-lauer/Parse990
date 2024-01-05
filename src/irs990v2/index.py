@@ -58,7 +58,7 @@ class Index(Sequence):
                     if file.is_file():
                         with open(file, 'r', newline='', encoding='utf-8-sig') as f:
                             yield parser.parse(f, forms)
-    
+                            break
     @classmethod
     def _expandFilingsDir(cls, filings_dir:str) -> dict[str, list[Path]]:
         dirs = dict()

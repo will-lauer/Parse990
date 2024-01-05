@@ -35,7 +35,7 @@ def main(args: list[str] = None):
             for f in args.forms:
                 writer[f].writerows(filing[f])
         
-        for w in writer.values():
+        for w in output_files.values():
             w.close()
 
 if __name__ == "__main__":
