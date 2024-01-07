@@ -12,6 +12,8 @@ class Test(unittest.TestCase):
 
     TEST_DIR = pathlib.Path(__file__).parent
     TEST_FILE =TEST_DIR.joinpath("index.csv")
+    TEST_FILE_2019 =TEST_DIR.joinpath("index_2019.csv")
+
 
     def testIndex(self):
         with open(self.TEST_FILE, 'r', newline='') as f:
@@ -50,6 +52,20 @@ class Test(unittest.TestCase):
                     self.assertEqual(b['name'], 'TRUSTEES OF BOSTON COLLEGE')
                     self.assertIn(b['cusip'], ['57583RPC3', '57583RL45', '57583R4M4', '57583UZQ4'])
                 self.assertEqual(ii, 4)
+
+    def testProcessZip(self):
+        with open(self.TEST_FILE_2019, 'r', encoding='utf-8-sig', newline='') as file:
+            for filing in Index.processZip(file, self.TEST_DIR, None, ['990', 'BondIssue']):
+                d = next(filing['990'])
+                self.assertEqual(d['ein'], '550307300')
+                self.assertEqual(d['name'], 'WEST VIRGINIA TRUCKING ASSOCIATION INC')
+                self.assertEqual(d['returntype'], '990')
+                self.assertEqual(d['taxyear'], '2017')
+                self.assertEqual(d['contributions'], '83118')
+                self.assertIsNone(d['priorperiodadjustments'])
+
+                bonds = filing['BondIssue']
+                self.assertEqual(len(list(bonds)), 0)
 
 
     def testExpandFilingsDir(self):    
